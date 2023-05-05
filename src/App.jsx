@@ -5,24 +5,18 @@ import Game from './pages/Game';
 
 function App() {
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={(
-          <Main>
-            <Home />
-          </Main>
-        )}
-      />
-      <Route
-        path="/game"
-        element={(
-          <Main>
-            <Game />
-          </Main>
-)}
-      />
-    </Routes>
+    <Main>
+      <Routes>
+        <Route
+          path="/"
+          element={<Home />}
+        />
+        <Route
+          path="/game"
+          element={<Game />}
+        />
+      </Routes>
+    </Main>
   );
 }
 
