@@ -1,101 +1,152 @@
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
+/* eslint-disable camelcase */
 import {
-  useEffect, useState, useRef, useMemo
+  useEffect, useState
 } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import GameSection from '../styles/game';
 import { fetchQuestionsByCategory } from '../services/api';
+import Score from './Score';
+import { Main } from '../styles/main';
 
 function Game() {
-  const [timer, setTimer] = useState(5);
+  const [timer, setTimer] = useState(30);
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState();
+  const [embaralhedAnswer, setEmbaralhedAnswer] = useState([]);
+  const [clickedAnswer, setClickedAnswer] = useState('');
   const [answers, setAnswers] = useState({
     correctAnswer: 0,
     incorrectAnswers: 0,
-    notAnswered: 0,
   });
-  const timerId = useRef();
+
   const location = useLocation();
+  const navigate = useNavigate();
 
   const randomQuestions = () => {
     const random = Math.floor(Math.random() * questions.length);
     setCurrentQuestion(questions[random]);
     questions.splice(random, 1);
-  };
-
-  const startTimer = async () => {
-    timerId.current = setInterval(() => {
-      setTimer((prev) => prev - 1);
-    }, 1000);
-    if (questions.length === 0) {
-      const data = await fetchQuestionsByCategory(location.state.categoryId, 'easy');
-      setQuestions(data.results);
+    if (currentQuestion === undefined) {
+      const { correctAnswer, incorrectAnswers } = answers;
+      navigate('/score', { state: { correctAnswer, incorrectAnswers } });
     }
-  };
-
-  const stopTimer = () => {
-    clearInterval(timerId.current);
-    timerId.current = 0;
-    setTimer(0);
   };
 
   useEffect(() => {
     const { categoryId } = location.state;
     async function fetchData() {
-      const data = await fetch(`https://opentdb.com/api.php?amount=5&category=${categoryId}&difficulty=easy&type=multiple`);
-      const response = await data.json();
-      setQuestions(response.results);
-      setCurrentQuestion(response.results[0]);
-      questions.splice(0, 1);
+      const data = await fetchQuestionsByCategory(categoryId, 'easy');
+      setQuestions(data.results);
+      setCurrentQuestion(data.results[0]);
     }
     fetchData();
   }, []);
 
-  useMemo(() => {
-    if (timer === 0 && questions.length > 0) {
-      randomQuestions();
-      setTimer(5);
+  let timerId;
+  useEffect(() => {
+    if (timer === 0) {
+      clearTimeout(timerId);
+    } else {
+      timerId = setTimeout(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
     }
-    if (timer === 0 && questions.length === 0) {
-      stopTimer();
-    }
+
+    return () => {
+      clearTimeout(timerId);
+    };
   }, [timer, questions]);
+
+  useEffect(() => {
+    if (timer === 30 && currentQuestion) {
+      const { correct_answer, incorrect_answers } = currentQuestion;
+      const randomsAnswers = [...incorrect_answers, correct_answer];
+      randomsAnswers.sort(() => Math.random() - 0.5);
+      setEmbaralhedAnswer(randomsAnswers);
+    }
+    if (timer === 0 && clickedAnswer === '') {
+      setAnswers((prev) => ({ ...prev, incorrectAnswers: prev.incorrectAnswers + 1 }));
+      clearTimeout(timerId);
+      randomQuestions();
+      setClickedAnswer('');
+      setTimer(30);
+    }
+  }, [timer, currentQuestion]);
+
+  useEffect(() => {
+    if (currentQuestion) {
+      const { correct_answer } = currentQuestion;
+      if (clickedAnswer !== '' && clickedAnswer === correct_answer) {
+        setAnswers((prev) => ({ ...prev, correctAnswer: prev.correctAnswer + 1 }));
+        clearTimeout(timerId);
+        randomQuestions();
+        setClickedAnswer('');
+        setTimer(30);
+      }
+      if (clickedAnswer !== '' && clickedAnswer !== correct_answer) {
+        setAnswers((prev) => ({ ...prev, incorrectAnswers: prev.incorrectAnswers + 1 }));
+        clearTimeout(timerId);
+        randomQuestions();
+        setClickedAnswer('');
+        setTimer(30);
+      }
+    }
+  }, [clickedAnswer, currentQuestion]);
+
+  const lettersQuestions = ['A', 'B', 'C', 'D'];
+
   return (
-    <GameSection>
-      <header className="header-game">
-        <h3>
-          Corretas:
-          {' '}
-          {answers.correctAnswer}
-        </h3>
-        <h3>
-          Erradas:
-          {' '}
-          {answers.incorrectAnswers}
-        </h3>
-        <h3>
-          Nao respondidas:
-          {' '}
-          {answers.notAnswered}
-        </h3>
-      </header>
-      <button onClick={startTimer} type="button">{questions.length > 0 ? 'Comecar' : 'Jogar Novamente'}</button>
-      <h1>{currentQuestion.question}</h1>
-      <ul>
-        {currentQuestion ? currentQuestion.incorrect_answers.map((question) => (
-          <li key={uuidv4()}>{question}</li>
-        )) : (<h1>carregando</h1>)}
-        {currentQuestion ? <li key={uuidv4()}>{currentQuestion.correct_answer}</li>
-          : (<h1>carregando</h1>)}
-      </ul>
-      <section className="play-again">
-        <h5>
-          Tempo restante:
-          {timer}
-        </h5>
-      </section>
-    </GameSection>
+    <Main>
+      {currentQuestion ? (
+        <GameSection>
+          <header className="header-game">
+            <h3>
+              Corretas:
+              {' '}
+              {answers.correctAnswer}
+            </h3>
+            <h3>
+              Erradas:
+              {' '}
+              {answers.incorrectAnswers}
+            </h3>
+          </header>
+          <section className="questions">
+            <h1>{currentQuestion ? currentQuestion.question : 'Carregando'}</h1>
+            <div className="answer-container">
+              <ul>
+                {currentQuestion ? embaralhedAnswer.map((question, i) => (
+                  <li
+                    onClick={(e) => setClickedAnswer(e.target.innerText.slice(3))}
+                    key={uuidv4()}
+                  >
+                    {`${lettersQuestions[i]}: ${question}`}
+                  </li>
+                )) : (<h2>carregando</h2>)}
+              </ul>
+            </div>
+          </section>
+          <section className="play-again">
+            <h4>
+              Tempo restante:
+              {' '}
+              {timer}
+              {' '}
+              segundos
+            </h4>
+          </section>
+        </GameSection>
+      ) : (
+        <Score
+          correctAnswer={answers.correctAnswer}
+          incorrectAnswers={answers.incorrectAnswers}
+        />
+      )}
+
+    </Main>
   );
 }
 
