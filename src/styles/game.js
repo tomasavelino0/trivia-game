@@ -43,7 +43,8 @@ const GameSection = styled.section`
 
     .play-again {
         display: flex;
-        justify-content: flex-end;
+        font-size: 24px;
+        justify-content: center;
         margin-top: 60px;
     }
     

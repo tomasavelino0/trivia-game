@@ -118,14 +118,14 @@ function Game() {
             <h1>{currentQuestion ? currentQuestion.question : 'Carregando'}</h1>
             <div className="answer-container">
               <ul>
-                {currentQuestion ? embaralhedAnswer.map((question, i) => (
+                {currentQuestion && embaralhedAnswer ? embaralhedAnswer.map((question, i) => (
                   <li
                     onClick={(e) => setClickedAnswer(e.target.innerText.slice(3))}
                     key={uuidv4()}
                   >
                     {`${lettersQuestions[i]}: ${question}`}
                   </li>
-                )) : (<h2>carregando</h2>)}
+                )) : null}
               </ul>
             </div>
           </section>
