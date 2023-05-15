@@ -3,7 +3,8 @@
 # Trivia e um jogo de perguntas e respostas.
 
 ## O Desafio era criar um game com 1 timer na pagina e consumir a API publica que fornecia as perguntas e as respostas.
-
+  
+## Se quiser testar [aqui](https://trivia-game-tomas.vercel.app/)
 
 #### resultado.
 
